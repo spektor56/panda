@@ -174,6 +174,7 @@ void safety_tick(const addr_checks *rx_checks) {
       bool lagging = elapsed_time > MAX(rx_checks->check[i].msg[rx_checks->check[i].index].expected_timestep * MAX_MISSED_MSGS, 1e6);
       rx_checks->check[i].lagging = lagging;
       if (lagging) {
+        disengageFromBrakes = false;
         controls_allowed = false;
       }
 
@@ -200,6 +201,7 @@ bool is_msg_valid(AddrCheckStruct addr_list[], int index) {
   if (index != -1) {
     if (!addr_list[index].valid_checksum || !addr_list[index].valid_quality_flag || (addr_list[index].wrong_counters >= MAX_WRONG_COUNTERS)) {
       valid = false;
+      disengageFromBrakes = false;
       controls_allowed = false;
     }
   }
@@ -254,13 +256,31 @@ bool addr_safety_check(CANPacket_t *to_push,
 void generic_rx_checks(bool stock_ecu_detected) {
   // exit controls on rising edge of gas press
   if (gas_pressed && !gas_pressed_prev && !(alternative_experience & ALT_EXP_DISABLE_DISENGAGE_ON_GAS)) {
+    disengageFromBrakes = false;
     controls_allowed = false;
   }
   gas_pressed_prev = gas_pressed;
 
   // exit controls on rising edge of brake press
-  if (brake_pressed && (!brake_pressed_prev || vehicle_moving)) {
-    controls_allowed = false;
+if (brake_pressed) {
+    if((!brake_pressed_prev || vehicle_moving))
+    {
+      if(controls_allowed)
+      {
+        disengageFromBrakes = true;
+      }
+      controls_allowed = false;
+    }
+  }else {
+    if(disengageFromBrakes)
+    {
+      disengageFromBrakes = false;
+      bool resume_lkas_after_brake = alternative_experience & ALT_EXP_RESUME_LKAS_AFTER_BRAKE;
+      if(resume_lkas_after_brake)
+      {
+        controls_allowed = true;
+      }
+    }
   }
   brake_pressed_prev = brake_pressed;
 
