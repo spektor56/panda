@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 from typing import Optional
 
+from panda import ALTERNATIVE_EXPERIENCE
 from panda import Panda
 from panda.tests.libpanda import libpanda_py
 import panda.tests.safety.common as common
@@ -60,6 +61,47 @@ class HondaButtonEnableBase(common.PandaCarSafetyTest):
       self._rx(self._button_msg(btn, main_on=False))
       self.assertFalse(self.safety.get_controls_allowed())
 
+  def test_alternative_experience_lkas_button_press(self):
+
+    self.safety.set_alternative_experience(ALTERNATIVE_EXPERIENCE.SPLIT_LKAS_AND_ACC)
+
+    for main_on in (True, False):
+      self._rx(self._acc_state_msg(main_on))
+      self._rx(self._button_msg(Btn.NONE))
+      for btn_cur in range(4):
+        self.safety.set_controls_allowed(0)
+        self.assertFalse(self.safety.get_controls_allowed())
+        self._rx(self._setting_msg(btn_cur))
+
+        should_enable = (main_on and btn_cur == 1)
+
+        self.assertEqual(should_enable, self.safety.get_controls_allowed(), msg=f"{main_on=} {btn_cur=}")
+
+  def test_alternative_experience_split_lkas_and_acc(self):
+    """
+      Both SET and RES should enter controls allowed on their rising edge.
+    """
+    self.safety.set_alternative_experience(ALTERNATIVE_EXPERIENCE.SPLIT_LKAS_AND_ACC)
+
+    for main_on in (True, False):
+      self._rx(self._acc_state_msg(main_on))
+      for btn_prev in range(8):
+        for btn_cur in range(8):
+          self._rx(self._button_msg(Btn.NONE))
+          self.safety.set_controls_allowed(0)
+          self.assertFalse(self.safety.get_controls_allowed())
+
+          for _ in range(10):
+            self._rx(self._button_msg(btn_prev))
+
+          # should enter controls allowed on rising edge
+          should_enable = (main_on and
+                           ((btn_cur != btn_prev and btn_cur in (Btn.RESUME, Btn.SET)) or
+                            (btn_prev in (Btn.RESUME, Btn.SET) and btn_cur != Btn.MAIN)))
+
+          self._rx(self._button_msg(btn_cur))
+          self.assertEqual(should_enable, self.safety.get_controls_allowed(), msg=f"{main_on=} {btn_prev=} {btn_cur=}")
+
   def test_set_resume_buttons(self):
     """
       Both SET and RES should enter controls allowed on their falling edge.
@@ -103,6 +145,8 @@ class HondaButtonEnableBase(common.PandaCarSafetyTest):
 
     # TODO: move this test to common
     # checksum checks
+    self._rx(self._acc_state_msg(True))
+
     for msg in ["btn", "gas", "speed"]:
       self.safety.set_controls_allowed(1)
       if msg == "btn":
@@ -233,6 +277,12 @@ class HondaBase(common.PandaCarSafetyTest):
   def _button_msg(self, buttons, main_on=False, bus=None):
     bus = self.PT_BUS if bus is None else bus
     values = {"CRUISE_BUTTONS": buttons, "COUNTER": self.cnt_button % 4}
+    self.__class__.cnt_button += 1
+    return self.packer.make_can_msg_panda("SCM_BUTTONS", bus, values)
+
+  def _setting_msg(self, buttons, main_on=False, bus=None):
+    bus = self.PT_BUS if bus is None else bus
+    values = {"CRUISE_SETTING": buttons, "COUNTER": self.cnt_button % 4}
     self.__class__.cnt_button += 1
     return self.packer.make_can_msg_panda("SCM_BUTTONS", bus, values)
 
@@ -451,6 +501,7 @@ class TestHondaBoschSafetyBase(HondaBase):
   #   self.assertFalse(self._rx(to_push))
   #   self.assertFalse(self.safety.get_controls_allowed())
   def test_alt_disengage_on_brake(self):
+    self._rx(self._acc_state_msg(True))
     self.safety.set_honda_alt_brake_msg(1)
     self.safety.set_controls_allowed(1)
     self._rx(self._alt_brake_msg(1))

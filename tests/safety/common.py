@@ -149,6 +149,8 @@ class InterceptorSafetyTest(PandaSafetyTestBase):
     self.safety.set_gas_interceptor_detected(False)
 
   def test_disengage_on_gas_interceptor(self):
+    if hasattr(self, '_acc_state_msg'):
+      self._rx(self._acc_state_msg(True)) # pylint: disable=E1101
     for g in range(0x1000):
       self._rx(self._interceptor_user_gas(0))
       self.safety.set_controls_allowed(True)
@@ -159,6 +161,8 @@ class InterceptorSafetyTest(PandaSafetyTestBase):
       self.safety.set_gas_interceptor_detected(False)
 
   def test_alternative_experience_no_disengage_on_gas_interceptor(self):
+    if hasattr(self, '_acc_state_msg'):
+      self._rx(self._acc_state_msg(True)) # pylint: disable=E1101
     self.safety.set_controls_allowed(True)
     self.safety.set_alternative_experience(ALTERNATIVE_EXPERIENCE.DISABLE_DISENGAGE_ON_GAS)
     for g in range(0x1000):
@@ -171,6 +175,8 @@ class InterceptorSafetyTest(PandaSafetyTestBase):
       self.assertTrue(self.safety.get_longitudinal_allowed())
 
   def test_allow_engage_with_gas_interceptor_pressed(self):
+    if hasattr(self, '_acc_state_msg'):
+      self._rx(self._acc_state_msg(True)) # pylint: disable=E1101
     self._rx(self._interceptor_user_gas(0x1000))
     self.safety.set_controls_allowed(1)
     self._rx(self._interceptor_user_gas(0x1000))
@@ -941,6 +947,8 @@ class PandaCarSafetyTest(PandaSafetyTest):
       self.assertEqual(bool(pressed), self.safety.get_gas_pressed_prev())
 
   def test_allow_engage_with_gas_pressed(self):
+    if hasattr(self, '_acc_state_msg'):
+      self._rx(self._acc_state_msg(True)) # pylint: disable=E1101
     self._rx(self._user_gas_msg(1))
     self.safety.set_controls_allowed(True)
     self._rx(self._user_gas_msg(1))
@@ -955,6 +963,8 @@ class PandaCarSafetyTest(PandaSafetyTest):
     self.assertFalse(self.safety.get_controls_allowed())
 
   def test_alternative_experience_no_disengage_on_gas(self):
+    if hasattr(self, '_acc_state_msg'):
+      self._rx(self._acc_state_msg(True)) # pylint: disable=E1101
     self._rx(self._user_gas_msg(0))
     self.safety.set_controls_allowed(True)
     self.safety.set_alternative_experience(ALTERNATIVE_EXPERIENCE.DISABLE_DISENGAGE_ON_GAS)
@@ -979,6 +989,8 @@ class PandaCarSafetyTest(PandaSafetyTest):
       self.assertEqual(pressed, get_brake_pressed_prev())
 
   def test_enable_control_allowed_from_cruise(self):
+    if hasattr(self, '_acc_state_msg'):
+      self._rx(self._acc_state_msg(True)) # pylint: disable=E1101
     self._rx(self._pcm_status_msg(False))
     self.assertFalse(self.safety.get_controls_allowed())
     self._rx(self._pcm_status_msg(True))
@@ -997,6 +1009,8 @@ class PandaCarSafetyTest(PandaSafetyTest):
       self.assertEqual(not engaged, self.safety.get_cruise_engaged_prev())
 
   def test_allow_user_brake_at_zero_speed(self, _user_brake_msg=None, get_brake_pressed_prev=None):
+    if hasattr(self, '_acc_state_msg'):
+      self._rx(self._acc_state_msg(True)) # pylint: disable=E1101
     if _user_brake_msg is None:
       _user_brake_msg = self._user_brake_msg
 
@@ -1017,6 +1031,8 @@ class PandaCarSafetyTest(PandaSafetyTest):
     self._rx(_user_brake_msg(0))  # reset no brakes
 
   def test_not_allow_user_brake_when_moving(self, _user_brake_msg=None, get_brake_pressed_prev=None):
+    if hasattr(self, '_acc_state_msg'):
+      self._rx(self._acc_state_msg(True)) # pylint: disable=E1101
     if _user_brake_msg is None:
       _user_brake_msg = self._user_brake_msg
 
