@@ -210,6 +210,7 @@ void tick_handler(void) {
       }
 
       // exit controls allowed if unused by openpilot for a few seconds
+      /*TODO: dont need this for now since bosch
       if (controls_allowed && !disengageFromBrakes && !heartbeat_engaged) {
         heartbeat_engaged_mismatches += 1U;
         if (heartbeat_engaged_mismatches >= 3U) {
@@ -219,6 +220,7 @@ void tick_handler(void) {
       } else {
         heartbeat_engaged_mismatches = 0U;
       }
+      */
 
       if (!heartbeat_disabled) {
         // if the heartbeat has been gone for a while, go to SILENT safety mode and enter power save
