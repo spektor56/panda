@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - carnival
   pull_request:
 
 concurrency:
